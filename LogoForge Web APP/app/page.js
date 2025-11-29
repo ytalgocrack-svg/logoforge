@@ -4,25 +4,74 @@ import { supabase } from '@/lib/supabase';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 import { Search, Download, Star } from 'lucide-react';
+import SocialPopup from '@/components/SocialPopup';
+import Maintenance from '@/components/Maintenance';
 
 export default function Home() {
   const [logos, setLogos] = useState([]);
   const [search, setSearch] = useState('');
+  
+  // NEW: Settings State
+  const [settings, setSettings] = useState(null);
+  const [maintenance, setMaintenance] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchLogos();
+    fetchData();
   }, []);
 
-  async function fetchLogos() {
+  async function fetchData() {
+    // 1. Check User Role
+    const { data: { user } } = await supabase.auth.getUser();
+    let admin = false;
+    if (user) {
+      const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      if (data?.role === 'admin') admin = true;
+    }
+    setIsAdmin(admin);
+
+    // 2. Fetch Settings
+    const { data: settingsData } = await supabase.from('settings').select('*');
+    const config = {};
+    if (settingsData) {
+      settingsData.forEach(item => config[item.key] = item.value);
+    }
+    setSettings(config);
+
+    // 3. Check Maintenance
+    if (config.maintenance_mode === 'true' && !admin) {
+      setMaintenance(true);
+      setLoading(false);
+      return; // Stop loading logos if in maintenance
+    }
+
+    // 4. Fetch Logos (Only if not maintenance)
+    let query = supabase.from('logos').select('*').order('created_at', { ascending: false });
+    const { data: logoData } = await query;
+    if (logoData) setLogos(logoData);
+    setLoading(false);
+  }
+
+  // Handle Search
+  async function handleSearch() {
     let query = supabase.from('logos').select('*').order('created_at', { ascending: false });
     if (search) query = query.ilike('title', `%${search}%`);
     const { data } = await query;
     if (data) setLogos(data);
   }
 
+  if (loading) return <div className="p-20 text-center">Loading...</div>;
+
+  // BLOCK SITE if Maintenance is ON and User is NOT Admin
+  if (maintenance) return <Maintenance />;
+
   return (
     <main className="min-h-screen bg-slate-50">
       <Navbar />
+      
+      {/* Show Popup if settings loaded */}
+      {settings && <SocialPopup settings={settings} />}
 
       {/* Hero Section */}
       <div className="bg-slate-900 py-20 px-4 text-center relative overflow-hidden">
@@ -38,10 +87,10 @@ export default function Home() {
           <div className="relative group">
             <input 
               type="text" 
-              placeholder="Search for logos (e.g. 'Gaming', 'Abstract')..." 
+              placeholder="Search logos..." 
               className="w-full p-4 pl-12 rounded-full border-none shadow-2xl focus:ring-2 focus:ring-blue-500 bg-white/95 backdrop-blur text-lg"
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && fetchLogos()}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
             <Search className="absolute left-4 top-4 text-gray-400" size={24} />
           </div>
@@ -58,10 +107,9 @@ export default function Home() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {logos.map((logo) => (
-          <Link key={logo.id} href={`/view?id=${logo.id}`}>
+            <Link key={logo.id} href={`/view?id=${logo.id}`}>
               <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 overflow-hidden cursor-pointer h-full flex flex-col">
                 <div className="h-56 bg-slate-100 flex items-center justify-center p-6 relative">
-                   <div className="absolute inset-0 bg-grid-slate-200/50 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]"></div>
                    <img src={logo.url_png} alt={logo.title} className="h-full w-full object-contain relative z-10 group-hover:scale-110 transition-transform duration-300" />
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between">
@@ -86,5 +134,3 @@ export default function Home() {
     </main>
   );
 }
-
-
