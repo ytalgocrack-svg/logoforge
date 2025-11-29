@@ -1,15 +1,18 @@
 "use client";
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Navbar from '@/components/Navbar';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Download, Lock, Clock, X, ExternalLink, FileCode, Layers } from 'lucide-react';
+import { Download, Lock, Clock, X, ExternalLink, FileCode, Layers, Eye } from 'lucide-react';
 import { forceDownload } from '@/lib/utils'; 
 
 function LogoViewContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
   const router = useRouter();
+  
+  // Prevent double-counting views in React Strict Mode
+  const viewCounted = useRef(false);
   
   const [logo, setLogo] = useState(null);
   const [user, setUser] = useState(null);
@@ -20,7 +23,14 @@ function LogoViewContent() {
   useEffect(() => {
     checkUser();
     fetchSettings();
-    if (id) fetchLogo();
+    if (id) {
+      fetchLogo();
+      // Increment View Count (Once per session load)
+      if (!viewCounted.current) {
+        supabase.rpc('increment_view', { row_id: id });
+        viewCounted.current = true;
+      }
+    }
   }, [id]);
 
   async function checkUser() {
@@ -39,13 +49,20 @@ function LogoViewContent() {
     setLoading(false);
   }
 
-  // --- NEW: Tracking Function ---
   async function trackDownload(type) {
-    if (!user) return; // Don't track guests
-    await supabase.from('user_downloads').insert({
-      user_id: user.id,
-      logo_id: logo.id
-    });
+    // 1. Increment Public Counter (Realtime Stats)
+    await supabase.rpc('increment_download_count', { row_id: logo.id });
+
+    // 2. Track Specific User History (if logged in)
+    if (user) {
+      await supabase.from('user_downloads').insert({
+        user_id: user.id,
+        logo_id: logo.id
+      });
+    }
+    
+    // Refresh local data to show new count
+    fetchLogo(); 
   }
 
   const checkTokenValidity = () => {
@@ -61,7 +78,7 @@ function LogoViewContent() {
 
   const handleRestrictedDownload = (url, filename) => {
     if (!user) {
-      if(confirm("Login required. Go to login?")) router.push('/auth');
+      if(confirm("Login required to download source files. Go to login?")) router.push('/auth');
       return;
     }
 
@@ -72,7 +89,6 @@ function LogoViewContent() {
       }
     }
 
-    // Track and Download
     trackDownload();
     forceDownload(url, filename);
   };
@@ -116,7 +132,11 @@ function LogoViewContent() {
             <div className="mb-6">
               <span className="bg-blue-500/20 text-blue-300 border border-blue-500/30 px-3 py-1 rounded-full text-sm font-bold uppercase tracking-wider">{logo.category}</span>
               <h1 className="text-4xl font-extrabold mt-4 mb-2">{logo.title}</h1>
-              <p className="text-slate-400">Uploaded on {new Date(logo.created_at).toDateString()}</p>
+              <div className="flex items-center gap-4 text-slate-400 text-sm">
+                 <span className="flex items-center gap-1"><Eye size={16}/> {logo.views} Views</span>
+                 <span className="flex items-center gap-1"><Download size={16}/> {logo.downloads} Downloads</span>
+                 <span>{new Date(logo.created_at).toDateString()}</span>
+              </div>
             </div>
 
             <div className="bg-white/5 p-6 rounded-2xl border border-white/10 mb-8">
