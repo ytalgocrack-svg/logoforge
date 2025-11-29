@@ -215,7 +215,23 @@ export default function AdminDashboard() {
                   placeholder="https://t.me/..."
                 />
               </div>
-
+<div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl mb-4">
+  <h3 className="font-bold text-yellow-800 mb-2">💰 Monetization (Shortlink)</h3>
+  <p className="text-sm text-yellow-700 mb-3">
+    Users must visit this link to generate a 1-hour token for PLP/XML downloads.
+    <br/>
+    <strong>Instructions:</strong> Go to your URL Shortener, shorten this link: 
+    <code className="bg-white px-1 rounded ml-1">https://your-site.netlify.app/verify</code> 
+    and paste the result below.
+  </p>
+  <label className="block text-sm font-bold text-slate-700 mb-2">Your Shortlink URL</label>
+  <input 
+    className="w-full border p-3 rounded-lg bg-white" 
+    value={settings.shortlink_url || ''}
+    onChange={e => setSettings({...settings, shortlink_url: e.target.value})}
+    placeholder="https://adlink.com/..."
+  />
+</div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">YouTube Link</label>
                 <input 
