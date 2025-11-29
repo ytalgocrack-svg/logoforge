@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { Search, Download } from 'lucide-react';
+ import { Search } from 'lucide-react';
 
 export default function Home() {
   const [logos, setLogos] = useState([]);
@@ -67,4 +67,5 @@ export default function Home() {
       </section>
     </main>
   );
+
 }
