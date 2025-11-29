@@ -61,7 +61,7 @@ export default function Home() {
     if (data) setLogos(data);
   }
 
-  if (loading) return <div className="p-20 text-center">Loading...</div>;
+  iif (loading) return <SkeletonGrid />;
 
   // BLOCK SITE if Maintenance is ON and User is NOT Admin
   if (maintenance) return <Maintenance />;
@@ -134,3 +134,4 @@ export default function Home() {
     </main>
   );
 }
+
