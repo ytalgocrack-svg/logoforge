@@ -131,7 +131,7 @@ export default function Navbar() {
                             <Shield size={16}/> Admin Panel
                           </Link>
                         )}
-                        <Link href={`/channel/${user.id}`} className="flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">
+                        <Link href={/channel/{user.id}} className="flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">
                            <Tv size={16}/> My Channel
                         </Link>
                         <Link href="/user/dashboard" className="flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">
