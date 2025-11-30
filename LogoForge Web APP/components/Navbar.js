@@ -102,7 +102,9 @@ export default function Navbar() {
             
             {/* DESKTOP RIGHT SIDE */}
             <div className="hidden md:flex items-center gap-4">
-              
+            <Link href="/community" className="text-sm font-bold text-slate-300 hover:text-primary flex items-center gap-1 transition">
+  <Users size={16} /> Community
+</Link>
               {!user ? (
                 <Link href="/auth" className="bg-white text-slate-900 px-6 py-2 rounded-full font-bold text-sm hover:bg-slate-200 transition shadow-lg">
                   Login
@@ -184,7 +186,12 @@ export default function Navbar() {
                     </div>
                  </div>
                  {isAdmin && <Link href="/admin" onClick={() => setMenuOpen(false)} className="block text-red-400 font-bold">Admin Panel</Link>}
-                 <Link href={`/channel?id=${user.id}`} onClick={() => setMenuOpen(false)} className="block text-slate-300">My Channel</Link>
+                 <Link href="/community" onClick={() => setMenuOpen(false)} className="block p-3 bg-white/5 rounded-xl font-bold text-slate-200 hover:bg-white/10 transition border border-white/5">
+  <div className="flex items-center gap-3">
+    <Users size={18} className="text-green-400"/> Community Chat
+  </div>
+</Link>
+                   <Link href={`/channel?id=${user.id}`} onClick={() => setMenuOpen(false)} className="block text-slate-300">My Channel</Link>
                  <Link href="/user/dashboard" onClick={() => setMenuOpen(false)} className="block text-slate-300">Creator Studio</Link>
                  <Link href="/account" onClick={() => setMenuOpen(false)} className="block text-slate-300">Settings</Link>
                  <button onClick={handleLogout} className="block w-full text-left text-slate-400">Logout</button>
