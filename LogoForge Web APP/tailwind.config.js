@@ -1,13 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: 
-  /** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
@@ -15,16 +8,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // This magic line connects Tailwind to your CSS variable
+        // This is required for the theme switcher to work
         primary: 'rgb(var(--primary) / <alpha-value>)', 
       },
     },
   },
   plugins: [],
-}
-  {
-    extend: {},
-  },
-  plugins: [],
-
 }
