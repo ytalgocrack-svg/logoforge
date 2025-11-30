@@ -1,9 +1,10 @@
 import './globals.css'
 import { ThemeProvider } from '@/context/ThemeContext';
+import AdScripts from '@/components/AdScripts'; // <--- Import
 
 export const metadata = {
-  title: 'EditorsAdda - Content Bawaal, Editing Kamaal!',
-  description: 'The ultimate hub for PLP, XML, and Editing Assets.',
+  title: 'EditorsAdda',
+  description: 'Premium Editing Assets',
 }
 
 export default function RootLayout({ children }) {
@@ -14,6 +15,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="bg-[#0f172a] text-slate-100" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
         <ThemeProvider>
+          <AdScripts /> {/* <--- Add this here */}
           {children}
         </ThemeProvider>
       </body>
