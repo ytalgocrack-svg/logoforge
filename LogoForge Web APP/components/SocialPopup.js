@@ -6,8 +6,10 @@ export default function SocialPopup({ settings }) {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
+    // Safety check: if settings is missing, don't run
+    if (!settings) return;
+
     const sessionClosed = sessionStorage.getItem('popup_closed');
-    // Check if popup is enabled and not closed yet
     if (settings.popup_enabled === 'true' && !sessionClosed) {
       const timer = setTimeout(() => setIsOpen(true), 2000);
       return () => clearTimeout(timer);
@@ -19,13 +21,14 @@ export default function SocialPopup({ settings }) {
     sessionStorage.setItem('popup_closed', 'true');
   };
 
+  if (!isOpen || !settings) return null;
+
   // Helper: Collect all valid telegram channels
+  // We use a safe check to ensure settings exist before accessing properties
   const telegramChannels = [1, 2, 3, 4, 5].map(num => ({
     label: settings[`telegram_label_${num}`] || `Channel ${num}`,
     link: settings[`telegram_link_${num}`]
-  })).filter(channel => channel.link && channel.link.length > 0);
-
-  if (!isOpen) return null;
+  })).filter(channel => channel.link && channel.link.trim().length > 0);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
@@ -55,6 +58,7 @@ export default function SocialPopup({ settings }) {
               key={index}
               href={channel.link} 
               target="_blank" 
+              rel="noopener noreferrer"
               className="flex items-center justify-between px-4 py-3 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-600 hover:text-white transition group border border-blue-100"
             >
               <span className="flex items-center gap-3">
@@ -66,15 +70,20 @@ export default function SocialPopup({ settings }) {
           ))}
 
           {/* YouTube (Existing) */}
-          {settings.youtube_link && (
-            <a href={settings.youtube_link} target="_blank" className="flex items-center justify-between px-4 py-3 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-600 hover:text-white transition group border border-red-100">
+          {settings.youtube_link && settings.youtube_link.length > 0 && (
+            <a 
+              href={settings.youtube_link} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center justify-between px-4 py-3 bg-red-50 text-red-600 rounded-xl font-bold hover:bg-red-600 hover:text-white transition group border border-red-100"
+            >
               <span className="flex items-center gap-3">
                 <Youtube size={20} className="group-hover:-translate-y-1 transition-transform"/> 
                 Subscribe YouTube
               </span>
               <ExternalLink size={16} className="opacity-50 group-hover:opacity-100"/>
             </a>
-          ))}
+          )}
         </div>
 
         <div className="mt-4 text-center">
