@@ -33,9 +33,9 @@ export default function AdminDashboard() {
   const [settings, setSettings] = useState({
     maintenance_mode: 'false',
     popup_enabled: 'true',
-    site_name: 'LogoForge',
-    hero_title: 'Design Your Brand.',
-    hero_subtitle: 'Premium assets for creators.',
+    site_name: 'EditorsAdda', 
+    hero_title: 'Content Bawaal, Editing Kamaal!', 
+    hero_subtitle: 'Editors ka apna adda. Download premium assets instantly.', 
     announcement_text: '',
     announcement_enabled: 'false',
     ad_script_head: '',
