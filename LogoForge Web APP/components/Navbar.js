@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   LogOut, Shield, Menu, X, Sparkles, Megaphone, 
   UploadCloud, LayoutDashboard, Trophy, MessageSquarePlus, 
-  Palette, User, Bell, Users // <--- Added Users Icon
+  Palette, User, Bell, Users, Swords // <--- Added Swords Icon
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 
@@ -108,6 +108,9 @@ export default function Navbar() {
             
             {/* Desktop Center Links */}
             <div className="hidden md:flex items-center gap-5">
+              <Link href="/dangal" className="text-sm font-bold text-slate-400 hover:text-red-500 flex items-center gap-1.5 transition">
+                <Swords size={16}/> Dangal
+              </Link>
               <Link href="/leaderboard" className="text-sm font-bold text-slate-400 hover:text-yellow-400 flex items-center gap-1.5 transition">
                 <Trophy size={16}/> Top Creators
               </Link>
@@ -195,6 +198,9 @@ export default function Navbar() {
              
              {/* Navigation Links */}
              <div className="space-y-1 pb-4 border-b border-white/5">
+               <Link href="/dangal" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 text-slate-300 font-bold hover:bg-white/5 rounded-lg">
+                 <Swords size={18} className="text-red-500"/> Dangal (Battles)
+               </Link>
                <Link href="/leaderboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 p-3 text-slate-300 font-bold hover:bg-white/5 rounded-lg">
                  <Trophy size={18} className="text-yellow-500"/> Leaderboard
                </Link>
