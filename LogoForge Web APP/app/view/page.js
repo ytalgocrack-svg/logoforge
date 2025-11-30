@@ -6,16 +6,16 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   Download, Lock, Clock, X, ExternalLink, 
-  FileCode, Layers, Eye, CheckCircle, User 
+  FileCode, Layers, Eye, User 
 } from 'lucide-react';
-import { forceDownload } from '@/lib/utils'; // Ensure you have this helper file
+import { forceDownload } from '@/lib/utils'; // Make sure lib/utils.js exists
 
 function LogoViewContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
   const router = useRouter();
   
-  // Ref to prevent double-counting in React Strict Mode
+  // Prevent double counting in React Strict Mode
   const viewCounted = useRef(false);
   
   const [logo, setLogo] = useState(null);
@@ -48,7 +48,7 @@ function LogoViewContent() {
   }
 
   async function fetchLogo() {
-    // JOIN with profiles table to get Creator Info (Avatar, Name)
+    // JOIN with profiles to get Creator Info
     const { data, error } = await supabase
       .from('logos')
       .select('*, profiles(id, display_name, avatar_url, email)')
@@ -60,11 +60,11 @@ function LogoViewContent() {
     setLoading(false);
   }
 
-  async function trackDownload(type) {
-    // 1. Increment Public Counter (Realtime Stats)
+  async function trackDownload() {
+    // 1. Increment Public Counter
     await supabase.rpc('increment_download_count', { row_id: logo.id });
 
-    // 2. Track Specific User History (if logged in)
+    // 2. Track Specific User History
     if (user) {
       await supabase.from('user_downloads').insert({
         user_id: user.id,
@@ -72,7 +72,7 @@ function LogoViewContent() {
       });
     }
     
-    // Refresh local data to show new count
+    // Refresh UI
     fetchLogo(); 
   }
 
@@ -123,7 +123,7 @@ function LogoViewContent() {
             <button onClick={() => setShowTokenModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={24} /></button>
             <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><Clock size={32} /></div>
             <h2 className="text-2xl font-bold mb-2">Token Required</h2>
-            <p className="text-slate-500 mb-6">Generate a token to access Premium files for 1 hour. This helps keep the server free.</p>
+            <p className="text-slate-500 mb-6">Generate a token to access Premium files for 1 hour. This supports the creator.</p>
             <a href={shortlink} target="_blank" onClick={() => setShowTokenModal(false)} className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition">
               Generate Token <ExternalLink size={20} />
             </a>
@@ -166,8 +166,11 @@ function LogoViewContent() {
               </p>
             </div>
 
-            {/* CREATOR CARD (NEW) */}
-            <Link href={/channel/{logo.uploader_id}} className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 hover:bg-white/10 transition mb-8 group cursor-pointer">
+            {/* CREATOR CARD (Fixed Link) */}
+            <Link 
+              href={`/channel?id=${logo.uploader_id}`} 
+              className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 hover:bg-white/10 transition mb-8 group cursor-pointer"
+            >
                <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-primary to-purple-500">
                  <img 
                    src={logo.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${logo.profiles?.email || 'User'}`} 
@@ -184,7 +187,7 @@ function LogoViewContent() {
             {/* DESCRIPTION */}
             <div className="bg-black/20 p-6 rounded-2xl border border-white/5 mb-8">
               <h3 className="font-bold text-slate-200 mb-2 text-sm uppercase tracking-wide">Description</h3>
-              <p className="text-slate-400 leading-relaxed text-sm">{logo.description || "No description provided by the creator."}</p>
+              <p className="text-slate-400 leading-relaxed text-sm">{logo.description || "No description provided."}</p>
             </div>
 
             {/* DOWNLOAD BUTTONS */}
