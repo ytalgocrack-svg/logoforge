@@ -1,34 +1,28 @@
 "use client";
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Download, Lock, Clock, X, ExternalLink, FileCode, Layers, Eye, Share2, Youtube, Heart } from 'lucide-react';
+import { 
+  Download, Lock, Clock, X, ExternalLink, 
+  FileCode, Layers, Eye, CheckCircle, User 
+} from 'lucide-react';
 import { forceDownload } from '@/lib/utils';
-import VerificationBadge from '@/components/VerificationBadge';
-import CommentSection from '@/components/CommentSection';
-import AdBanner from '@/components/AdBanner';
 
-export default function LogoViewContent() {
+// --- MAIN CONTENT COMPONENT ---
+function LogoViewContent() {
   const searchParams = useSearchParams();
-  const id = searchParams.get('id');
+  const id = searchParams.get('id'); // This causes the error if not suspended
   const router = useRouter();
+  
   const viewCounted = useRef(false);
   
   const [logo, setLogo] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  // Settings & Modes
-  const [monetizationMode, setMonetizationMode] = useState('share'); // 'share', 'shortlink', 'none'
   const [shortlink, setShortlink] = useState('');
-  const [adBanner, setAdBanner] = useState('');
-  
-  // States
-  const [hasShared, setHasShared] = useState(false);
-  const [showModal, setShowModal] = useState(false); // Handles both Share & Token modal
-  const [modalType, setModalType] = useState(''); // 'share' or 'token'
+  const [showTokenModal, setShowTokenModal] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -39,6 +33,9 @@ export default function LogoViewContent() {
         supabase.rpc('increment_view', { row_id: id });
         viewCounted.current = true;
       }
+    } else {
+      // If no ID is present, stop loading
+      setLoading(false);
     }
   }, [id]);
 
@@ -48,159 +45,183 @@ export default function LogoViewContent() {
   }
 
   async function fetchSettings() {
-    const { data } = await supabase.from('settings').select('*');
-    if (data) {
-      setShortlink(data.find(k => k.key === 'shortlink_url')?.value);
-      setAdBanner(data.find(k => k.key === 'ad_banner_html')?.value);
-      setMonetizationMode(data.find(k => k.key === 'monetization_mode')?.value || 'share');
-    }
+    const { data } = await supabase.from('settings').select('*').eq('key', 'shortlink_url').single();
+    if (data) setShortlink(data.value);
   }
 
   async function fetchLogo() {
-    const { data } = await supabase.from('logos').select('*, profiles(*)').eq('id', id).single();
+    const { data, error } = await supabase
+      .from('logos')
+      .select('*, profiles(id, display_name, avatar_url, email)')
+      .eq('id', id)
+      .single();
+
+    if (error) console.error("Error fetching logo:", error);
     setLogo(data);
     setLoading(false);
   }
 
-  // --- DOWNLOAD LOGIC ---
-  const initiateDownload = (url, name, isPremium) => {
-    if(!user) return router.push('/auth');
-
-    // 1. Check Viral Share Mode
-    if (isPremium && monetizationMode === 'share' && !hasShared) {
-       setModalType('share');
-       setShowModal(true);
-       return;
+  async function trackDownload(type) {
+    await supabase.rpc('increment_download_count', { row_id: logo.id });
+    if (user) {
+      await supabase.from('user_downloads').insert({
+        user_id: user.id,
+        logo_id: logo.id
+      });
     }
+    fetchLogo(); 
+  }
 
-    // 2. Check Shortlink Token Mode
-    if (isPremium && monetizationMode === 'shortlink' && shortlink) {
-        const token = localStorage.getItem('download_token');
-        if (!token || Date.now() > parseInt(token)) {
-            setModalType('token');
-            setShowModal(true);
-            return;
-        }
+  const checkTokenValidity = () => {
+    const token = localStorage.getItem('download_token');
+    if (!token) return false;
+    const expiry = parseInt(token);
+    if (Date.now() > expiry) {
+      localStorage.removeItem('download_token');
+      return false;
     }
-
-    // 3. Execute Download
-    forceDownload(url, name);
-    supabase.rpc('increment_download_count', { row_id: id });
-    supabase.from('user_downloads').insert({ user_id: user.id, logo_id: id });
+    return true;
   };
 
-  const handleShareToUnlock = () => {
-    const text = `Check out ${logo.title} on EditorsAdda! ${window.location.href}`;
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  const handleRestrictedDownload = (url, filename) => {
+    if (!user) {
+      if(confirm("Login required to download source files. Go to login?")) router.push('/auth');
+      return;
+    }
+
+    if (shortlink && shortlink.length > 5) {
+      if (!checkTokenValidity()) {
+        setShowTokenModal(true);
+        return;
+      }
+    }
+
+    trackDownload();
+    forceDownload(url, filename);
+  };
+
+  const handleFreeDownload = (url) => {
+    trackDownload();
     window.open(url, '_blank');
-    
-    setTimeout(() => {
-      setHasShared(true);
-      setShowModal(false);
-      alert("Unlocked! Click download again.");
-    }, 4000); // 4 second wait to simulate verification
-  };
+  }
 
-  if (loading) return <div className="min-h-screen bg-[#0f172a] text-white flex items-center justify-center">Loading...</div>;
-  if (!logo) return <div className="min-h-screen bg-[#0f172a] text-white text-center pt-20">Not Found</div>;
+  if (loading) return <div className="min-h-screen bg-[#0f172a] pt-20 text-center text-white flex items-center justify-center"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>;
+  if (!logo) return <div className="min-h-screen bg-[#0f172a] pt-20 text-center text-white">Logo not found or deleted.</div>;
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white pb-20">
+    <div className="min-h-screen bg-[#0f172a] text-white">
       <Navbar />
       
-      {/* UNIFIED MODAL */}
-      {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
-           <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center relative">
-              <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 text-slate-400"><X size={24} /></button>
-              
-              {modalType === 'share' ? (
-                <>
-                  <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4"><Share2 size={32}/></div>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Share to Unlock</h2>
-                  <p className="text-slate-500 mb-6">Share this asset on WhatsApp to unlock the download link.</p>
-                  <button onClick={handleShareToUnlock} className="w-full bg-[#25D366] text-white py-4 rounded-xl font-bold text-lg hover:brightness-110 shadow-xl flex items-center justify-center gap-2">
-                     <Share2 size={24}/> Share on WhatsApp
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><Clock size={32}/></div>
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Premium Access</h2>
-                  <p className="text-slate-500 mb-6">Generate a free token to access premium files.</p>
-                  <a href={shortlink} target="_blank" onClick={() => setShowModal(false)} className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg shadow-xl">
-                    Generate Token <ExternalLink size={20} />
-                  </a>
-                </>
-              )}
-           </div>
+      {/* TOKEN MODAL */}
+      {showTokenModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center relative animate-bounce-in text-slate-900">
+            <button onClick={() => setShowTokenModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><X size={24} /></button>
+            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><Clock size={32} /></div>
+            <h2 className="text-2xl font-bold mb-2">Token Required</h2>
+            <p className="text-slate-500 mb-6">Generate a token to access Premium files for 1 hour. This helps keep the server free.</p>
+            <a href={shortlink} target="_blank" onClick={() => setShowTokenModal(false)} className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition">
+              Generate Token <ExternalLink size={20} />
+            </a>
+          </div>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto p-4 lg:p-10">
-        <div className="flex flex-col lg:flex-row gap-8">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-6 lg:p-12">
+        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
           
-          {/* LEFT: IMAGE & CONTENT */}
-          <div className="lg:w-2/3">
-            <div className="bg-black/30 rounded-3xl border border-white/10 p-8 flex items-center justify-center relative overflow-hidden mb-8">
-                <img src={logo.url_png} className="max-w-full max-h-[500px] object-contain drop-shadow-2xl relative z-10" />
-            </div>
-
-            <div className="bg-white/5 p-6 rounded-2xl border border-white/10 mb-8">
-               <h2 className="text-xl font-bold mb-4">{logo.title}</h2>
-               <p className="text-slate-300 leading-relaxed whitespace-pre-line mb-6">{logo.description}</p>
-               
-               {/* YouTube Embed */}
-               {logo.youtube_url && (
-                 <div className="mt-4">
-                    <div className="flex items-center gap-2 mb-2 text-red-400 font-bold"><Youtube size={20}/> Tutorial Available</div>
-                    <div className="aspect-video w-full rounded-xl overflow-hidden bg-black">
-                       <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${logo.youtube_url.split('v=')[1]?.split('&')[0]}`} allowFullScreen className="border-none"/>
-                    </div>
-                 </div>
-               )}
-            </div>
-
-            {/* Comments Component */}
-            <CommentSection logoId={id} user={user} />
+          {/* LEFT: IMAGE PREVIEW */}
+          <div className="lg:w-1/2 bg-black/30 p-10 flex items-center justify-center relative overflow-hidden group">
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+            <img 
+              src={logo.url_png} 
+              alt={logo.title} 
+              className="max-w-full max-h-[500px] object-contain drop-shadow-2xl relative z-10 group-hover:scale-105 transition-transform duration-500" 
+            />
           </div>
 
-          {/* RIGHT: SIDEBAR */}
-          <div className="lg:w-1/3 space-y-6">
-             {/* Creator Info */}
-             <Link href={`/channel/${logo.uploader_id}`} className="block bg-white/5 p-5 rounded-2xl border border-white/10 hover:bg-white/10 transition group">
-                <div className="flex items-center gap-4">
-                   <img src={logo.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${logo.profiles?.email}`} className="w-12 h-12 rounded-full border-2 border-[#0f172a] object-cover" />
-                   <div>
-                      <p className="text-xs text-slate-400 uppercase font-bold">Created by</p>
-                      <div className="flex items-center gap-1">
-                         <span className="font-bold text-lg text-white group-hover:text-blue-400 transition">{logo.profiles?.display_name || 'User'}</span>
-                         <VerificationBadge role={logo.profiles?.role} isVerified={logo.profiles?.is_verified} />
-                      </div>
-                   </div>
-                </div>
-             </Link>
+          {/* RIGHT: DETAILS & DOWNLOAD */}
+          <div className="lg:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+            
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                 <span className="bg-primary/20 text-primary border border-primary/30 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-[0_0_10px_rgba(var(--primary),0.3)]">
+                    {logo.category}
+                 </span>
+                 <div className="flex items-center gap-4 text-slate-400 text-xs font-mono">
+                    <span className="flex items-center gap-1"><Eye size={14}/> {logo.views}</span>
+                    <span className="flex items-center gap-1"><Download size={14}/> {logo.downloads}</span>
+                 </div>
+              </div>
+              
+              <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-4">{logo.title}</h1>
+              <p className="text-slate-400 text-sm flex items-center gap-2">
+                <Clock size={14}/> Uploaded on {new Date(logo.created_at).toLocaleDateString()}
+              </p>
+            </div>
 
-             {/* Downloads */}
-             <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-3">
-                <h3 className="font-bold text-slate-300 mb-2">Downloads</h3>
-                <button onClick={() => initiateDownload(logo.url_png, `${logo.title}.png`, false)} className="w-full flex items-center justify-between px-5 py-4 bg-white text-slate-900 rounded-xl font-bold hover:scale-[1.02] transition">
-                   <span className="flex items-center gap-2"><Download size={20}/> PNG</span>
-                   <span className="text-[10px] bg-slate-200 px-2 py-1 rounded font-bold">Free</span>
+            {/* CREATOR CARD */}
+            <Link href={`/channel/${logo.uploader_id}`} className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 hover:bg-white/10 transition mb-8 group cursor-pointer">
+               <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-primary to-purple-500">
+                 <img 
+                   src={logo.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${logo.profiles?.email || 'User'}`} 
+                   className="w-full h-full rounded-full object-cover border-2 border-[#0f172a]"
+                 />
+               </div>
+               <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Created by</p>
+                  <p className="text-white font-bold text-lg group-hover:text-primary transition">{logo.profiles?.display_name || logo.profiles?.email?.split('@')[0] || 'Anonymous'}</p>
+               </div>
+               <ExternalLink size={18} className="ml-auto text-slate-600 group-hover:text-white transition"/>
+            </Link>
+
+            {/* DESCRIPTION */}
+            <div className="bg-black/20 p-6 rounded-2xl border border-white/5 mb-8">
+              <h3 className="font-bold text-slate-200 mb-2 text-sm uppercase tracking-wide">Description</h3>
+              <p className="text-slate-400 leading-relaxed text-sm">{logo.description || "No description provided."}</p>
+            </div>
+
+            {/* DOWNLOAD BUTTONS */}
+            <div className="space-y-3">
+              <button onClick={() => handleFreeDownload(logo.url_png)} className="w-full flex items-center justify-between px-6 py-4 bg-white text-slate-900 rounded-xl hover:bg-slate-200 transition font-bold shadow-lg">
+                <span className="flex items-center gap-2"><Download size={20}/> Download Image (PNG)</span>
+                <span className="text-[10px] bg-slate-200 px-2 py-1 rounded font-bold uppercase tracking-wide">Free</span>
+              </button>
+
+              {logo.url_plp && (
+                <button 
+                  onClick={() => handleRestrictedDownload(logo.url_plp, `${logo.title.replace(/\s/g, '_')}.plp`)} 
+                  className={`w-full flex items-center justify-between px-6 py-4 rounded-xl transition border font-bold ${user ? 'bg-primary border-primary text-white hover:brightness-110 shadow-lg shadow-primary/20' : 'bg-transparent border-white/10 text-slate-500 cursor-not-allowed hover:border-white/20'}`}
+                >
+                  <span className="flex items-center gap-2"><Layers size={20}/> Download Project (.PLP)</span>
+                  {!user && <Lock size={16}/>}
                 </button>
-                {logo.url_plp && (
-                  <button onClick={() => initiateDownload(logo.url_plp, `${logo.title}.plp`, true)} className="w-full flex items-center justify-between px-5 py-4 bg-blue-600 text-white rounded-xl font-bold hover:scale-[1.02] transition">
-                     <span className="flex items-center gap-2"><Layers size={20}/> PLP File</span>
-                     <span className="text-[10px] bg-white/20 px-2 py-1 rounded font-bold">Premium</span>
-                  </button>
-                )}
-             </div>
-             
-             {/* Ad Banner */}
-             <AdBanner code={adBanner} />
+              )}
+
+              {logo.url_xml && (
+                <button 
+                  onClick={() => handleRestrictedDownload(logo.url_xml, `${logo.title.replace(/\s/g, '_')}.xml`)} 
+                  className={`w-full flex items-center justify-between px-6 py-4 rounded-xl transition border font-bold ${user ? 'bg-purple-600 border-purple-600 text-white hover:bg-purple-500 shadow-lg shadow-purple-500/20' : 'bg-transparent border-white/10 text-slate-500 cursor-not-allowed hover:border-white/20'}`}
+                >
+                  <span className="flex items-center gap-2"><FileCode size={20}/> Get Vector (.XML)</span>
+                  {!user && <Lock size={16}/>}
+                </button>
+              )}
+            </div>
+
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// --- SUSPENSE WRAPPER (CRITICAL FOR DEPLOYMENT) ---
+export default function LogoView() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0f172a] flex items-center justify-center text-white font-bold">Loading Asset...</div>}>
+      <LogoViewContent />
+    </Suspense>
   );
 }
