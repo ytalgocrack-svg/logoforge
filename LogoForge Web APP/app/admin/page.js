@@ -354,7 +354,20 @@ export default function AdminDashboard() {
         {/* 5. SETTINGS */}
         {activeTab === 'settings' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-slide-up">
-            
+            {/* FOOTER SETTINGS */}
+<div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2 mt-6">
+  <h3 className="font-bold text-lg mb-4 text-slate-800">Footer Customization</h3>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+     <textarea className="border p-2 rounded text-sm h-24" placeholder="Footer About Text" value={settings.footer_about} onChange={e => setSettings({...settings, footer_about: e.target.value})} />
+     <input className="border p-2 rounded text-sm" placeholder="Copyright Text" value={settings.footer_copyright} onChange={e => setSettings({...settings, footer_copyright: e.target.value})} />
+     
+     <div className="col-span-2 grid grid-cols-3 gap-2 bg-slate-50 p-4 rounded">
+        <div><input className="w-full border p-1 text-xs mb-1" placeholder="Link 1 Label" value={settings.footer_link_1_label} onChange={e => setSettings({...settings, footer_link_1_label: e.target.value})} /><input className="w-full border p-1 text-xs" placeholder="Link 1 URL" value={settings.footer_link_1_url} onChange={e => setSettings({...settings, footer_link_1_url: e.target.value})} /></div>
+        <div><input className="w-full border p-1 text-xs mb-1" placeholder="Link 2 Label" value={settings.footer_link_2_label} onChange={e => setSettings({...settings, footer_link_2_label: e.target.value})} /><input className="w-full border p-1 text-xs" placeholder="Link 2 URL" value={settings.footer_link_2_url} onChange={e => setSettings({...settings, footer_link_2_url: e.target.value})} /></div>
+        <div><input className="w-full border p-1 text-xs mb-1" placeholder="Link 3 Label" value={settings.footer_link_3_label} onChange={e => setSettings({...settings, footer_link_3_label: e.target.value})} /><input className="w-full border p-1 text-xs" placeholder="Link 3 URL" value={settings.footer_link_3_url} onChange={e => setSettings({...settings, footer_link_3_url: e.target.value})} /></div>
+     </div>
+  </div>
+</div>
             {/* Visuals */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-slate-800"><Layout className="text-blue-600" size={20}/> Site Visuals</h3>
