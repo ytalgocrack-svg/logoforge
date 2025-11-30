@@ -223,7 +223,43 @@ export default function AdminDashboard() {
                 <input className="w-full border p-3 rounded-xl text-slate-900" placeholder="Hero Title" value={settings.hero_title} onChange={e => setSettings({...settings, hero_title: e.target.value})} />
               </div>
             </div>
+{/* VIRAL & MONETIZATION */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 lg:col-span-2">
+              <h3 className="font-bold text-lg mb-4 text-slate-900 flex items-center gap-2">
+                 <AlertTriangle size={20} className="text-orange-500"/> Viral & Monetization
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div>
+                   <label className="text-xs font-bold text-slate-700 uppercase mb-1 block">Monetization Mode</label>
+                   <select 
+                     className="w-full border p-3 rounded-xl text-slate-900 bg-white" 
+                     value={settings.monetization_mode} 
+                     onChange={e => setSettings({...settings, monetization_mode: e.target.value})}
+                   >
+                      <option value="share">Share to Unlock (Best for Growth)</option>
+                      <option value="shortlink">Shortlink Token (Best for Revenue)</option>
+                      <option value="none">None (No Barriers)</option>
+                   </select>
+                 </div>
+                 
+                 <div>
+                   <label className="text-xs font-bold text-slate-700 uppercase mb-1 block">Trending Tags</label>
+                   <input 
+                     className="w-full border p-3 rounded-xl text-slate-900" 
+                     value={settings.trending_tags} 
+                     onChange={e => setSettings({...settings, trending_tags: e.target.value})} 
+                     placeholder="#Gaming, #Neon, #IPL" 
+                   />
+                 </div>
+              </div>
 
+              <h4 className="font-bold text-md mt-6 mb-2 text-slate-800">Active Contest Configuration</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <input className="w-full border p-3 rounded-xl text-slate-900" placeholder="Contest Title (e.g. Gaming War)" value={settings.active_contest_title} onChange={e => setSettings({...settings, active_contest_title: e.target.value})} />
+                 <input className="w-full border p-3 rounded-xl text-slate-900" placeholder="Tag Filter (e.g. dangal_v1)" value={settings.active_contest_tag} onChange={e => setSettings({...settings, active_contest_tag: e.target.value})} />
+              </div>
+            </div>
             {/* Rules Editor */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                <h3 className="font-bold text-lg mb-4 text-slate-900 flex items-center gap-2"><ShieldAlert size={20} className="text-red-500"/> Community Rules</h3>
